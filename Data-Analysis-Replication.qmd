@@ -1,0 +1,316 @@
+---
+title: "Data-Analysis-Replication"
+format: html
+editor: visual
+---
+
+## Introduction
+
+The paper mainly examines relationship between environmental variability and brain size in birds. The authors hypothesize that species living in more unpredictable environments may have evolved larger brains relative to their body size as an adaptive response.They also explores these patterns within major avian orders to assess whether evolutionary responses differ among lineages.<br/><br/>
+They apply phylogenetic generalized least squares (PGLS) models to examine associations between brain size and measures of environmental variability. Additionally, they categorize species into behavioral groups (e.g., residents and migrants) to investigate differences in seasonal resource availability. <br/><br/>
+In this project, I aim to replicate: <br/><br/>
+1. Table 1 (PGLS Models Testing Environmental Variation and Brain Size): The paper presents PGLS models examining how environmental variability (PPC1, PPC2, snow cover, and EVI variability) is associated with brain size across birds. I replicate these models and compare the estimated coefficients, standard errors, and p-values with those reported in the original study. <br/><br/>
+2. Figure 2 (Relationship Between Relative Brain Size and Environmental Variation in Different Avian Orders): The figure illustrates the relationship between relative brain size (computed as residuals from a log-log PGLS of brain and body size) and environmental variation (PPC1) within four avian orders: Passeriformes, Strigiformes, Piciformes, and Galliformes. I replicate this by fitting separate PGLS models for each order and visualizing the associations with scatterplots and regression lines. <br/><br/>
+3. Figure 3 (Seasonal EVI Differences Across Behavioral Categories): This figure shows how EVI varies seasonally (summer breeding vs. winter non-breeding vs. winter breeding) among different behavioral groups of birds (residents at low-, mid-, and high-latitudes, and short- and long-distance migrants). I replicate this by running a PGLS on breeding-site EVI against behavior categories and and structuring the bar plot with mean and standard error of EVI for each category.
+
+## Visulization of Data
+load packages:
+```{r, message=FALSE}
+library(nlme)
+library(EnvStats)
+library(phylopath)
+library(ape)
+library(phytools)
+library(car)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+```
+load data:
+```{r, warning=FALSE}
+# Load data
+df <- read.csv("https://raw.githubusercontent.com/AnjieSu/Data-Analysis-Replication/refs/heads/main/data/41467_2016_BFncomms13971_MOESM2316_ESM.csv")
+head(df)
+```
+
+## Statistical Replications/Reanalysis
+### Replicate of models in Table 1
+In the original study, the authors used phylogenetic generalized least squares (PGLS) models to test whether brain size is associated with environmental variation, while controlling for body size. Instead of using the caper package as in the original study, I use the nlme package, which is standard in my own research. All models incorporate Pagel’s λ correlation structure, following the same statistical approach as the original paper. <br/><br/>
+The phylogenetic tree used here is the one my lab works with. The tree is pruned to include only species present in the dataset.
+
+```{r, warning=FALSE}
+# load Tree
+load("~/repos/Data-Analysis-Replication/data/Bird.MCC.tree.Rdata")
+
+# prune to keep only desired species
+mytree <- ape::drop.tip(mytree, mytree$tip.label[-which(mytree$tip.label %in% df$species)])
+
+# use species names as row labels so that phylopath can match datasets
+df <- data.frame(df, row.names = df$species)
+
+# remove any na value
+mydata <- df %>%
+  drop_na(LogBrain, LogBody, CV.EVI.Intra.year, CV.EVI.Among.years, SnowWeeks, PPC1, PPC2) # N = 835
+```
+
+```{r, warning=FALSE}
+# Model 1: Brain size vs. Body size + CV(EVI) within-year
+model1 <- gls(LogBrain ~ LogBody + CV.EVI.Intra.year, data = mydata,
+              correlation = corPagel(value = 1, phy = mytree, 
+                                     form = ~ species), method = "REML")
+
+# Model 2: Brain size vs. Body size + log(Weeks of Snow + 1)
+model2 <- gls(LogBrain ~ LogBody + log(SnowWeeks + 1), data = mydata,
+              correlation = corPagel(value = 1, phy = mytree, 
+                                     form = ~ species), method = "REML")
+
+# Model 3: Brain size vs. Body size + CV(EVI) among-years
+model3 <- gls(LogBrain ~ LogBody + CV.EVI.Among.years, data = mydata,
+              correlation = corPagel(value = 1, phy = mytree, 
+                                     form = ~ species), method = "REML")
+
+# Model 4: Brain size vs. Body size + Environmental PCA components
+model4 <- gls(LogBrain ~ LogBody + PPC1 + PPC2, data = mydata,
+              correlation = corPagel(value = 1, phy = mytree, 
+                                     form = ~ species), method = "REML")
+```
+The following section presents the summary outputs of the four PGLS models replicated from Table 1 in the original study. The published Table 1 is also displayed below.
+```{r, warning=FALSE}
+summary(model1)
+```
+```{r, warning=FALSE}
+summary(model2)
+```
+```{r, warning=FALSE}
+summary(model3)
+```
+```{r, warning=FALSE}
+summary(model4)
+```
+```{r, warning=FALSE}
+knitr::include_graphics("images/Table 1.png")
+```
+Overall, the results support the study’s hypothesis that species in more variable environments tend to have larger brains.
+
+### Replicate of Figure 2
+For this replication, I again use GLS with Pagel’s λ correlation structure and the MCC phylogenetic tree, consistent with my approach in the first replication. <br/><br/>
+The original paper does not specify whether or how the predictor variables were transformed, despite the fact that their distributions are skewed and likely required transformation. Since transformation is necessary for proper model fitting, I applied a Box-Cox transformation to normalize the data. <br/><br/>
+Additionally, while my results capture the overall trend observed in the paper, I was unable to exactly match their reported regression coefficients (betas). Based on the sample sizes (N) reported in the figure caption, I inferred that their model did not include any additional covariates, so I followed this approach and fit a simpler model without covariates.
+```{r, warning=FALSE}
+# BC transform 
+myBCtransform <- function(myvector) {
+  require(EnvStats)
+  myindex <- which(!is.na(myvector))
+  # shift scale to positive numbers and identify optimal lambda for box-cox transformation
+  mylambda <- boxcox(as.numeric(myvector[myindex])-min(as.numeric(myvector[myindex]))+1, optimize = T)$lambda
+  
+  # transform
+  myvector[myindex] <- scale(boxcoxTransform(as.numeric(myvector[myindex])-min(as.numeric(myvector[myindex]))+1, mylambda))
+  return (myvector)
+}
+```
+#### Passeriformes
+```{r, warning=FALSE}
+# subset for Passeriformes
+dataPas <- mydata %>%
+  filter(order == "PASSERIFORMES") # N=417
+
+# prune tree
+pruned.tree <- drop.tip(mytree, mytree$tip.label[-which(mytree$tip.label %in% row.names(dataPas))])
+
+# PGLS for Passeriformes
+modPas <- gls(BrainResidual ~ myBCtransform(PPC1), data = dataPas,
+              correlation = corPagel(value = 1, phy = pruned.tree, 
+                                     form = ~ species), method = "REML")
+# Model summary
+summary(modPas)
+```
+#### Strigiformes
+```{r, warning=FALSE}
+# subset for Strigiformes
+dataStr <- mydata %>%
+  filter(order == "STRIGIFORMES")
+
+# prune tree
+pruned.tree <- drop.tip(mytree, mytree$tip.label[-which(mytree$tip.label %in% row.names(dataStr))])
+
+# PGLS for Strigiformes
+modStr <- gls(BrainResidual ~ myBCtransform(PPC1), data = dataStr,
+              correlation = corPagel(value = 1, phy = pruned.tree, 
+                                     form = ~ species), method = "REML")
+
+# Model summary
+summary(modStr)
+```
+#### Piciformes
+```{r, warning=FALSE}
+# subset for Piciformes
+dataPic <- mydata %>%
+  filter(order == "PICIFORMES")
+
+# prune tree
+pruned.tree <- drop.tip(mytree, mytree$tip.label[-which(mytree$tip.label %in% row.names(dataPic))])
+
+# PGLS for Piciformes
+modPic <- gls(BrainResidual ~ myBCtransform(PPC1), data = dataPic,
+              correlation = corPagel(value = 1, phy = pruned.tree, 
+                                     form = ~ species), method = "REML")
+# Model summary
+summary(modPic)
+```
+#### Galliformes
+```{r, warning=FALSE}
+# subset for Galliformes
+dataGal <- mydata %>%
+  filter(order == "GALLIFORMES")
+
+# prune tree
+pruned.tree <- drop.tip(mytree, mytree$tip.label[-which(mytree$tip.label %in% row.names(dataGal))])
+
+# PGLS for Galliformes
+modGal <- gls(BrainResidual ~ myBCtransform(PPC1), data = dataGal,
+              correlation = corPagel(value = 1, phy = pruned.tree, 
+                                     form = ~ species), method = "REML")
+
+# Model summary
+summary(modGal)
+```
+The estimates and standard deviations differ from those reported in the original paper, yet the overall findings remain consistent. Specifically, the results confirm a significant positive effect of environmental variation (PPC1) on relative brain size in Passeriformes, Strigiformes, and Piciformes, while no significant relationship is found in Galliformes, aligning with the conclusions of the original study. <br/><br/>
+Below are my replicated plots alongside the original figures from the paper for comparison.
+```{r, warning=FALSE, message = FALSE}
+# Plot relBS ~ PPC1 for Passeriforms
+ggplot(data = dataPas, aes(x = PPC1, y = BrainResidual)) + 
+  geom_point(alpha = 1) +  
+  geom_smooth(method = "lm", se = TRUE, color = "black") + 
+  labs(title = "Relative Brain Size vs. Environmental Variation (Passeriformes)",
+       x = "Environmental Variation (PPC1)",
+       y = "Relative Brain Size") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Plot relBS ~ PPC1 for Strigiformes
+ggplot(data = dataStr, aes(x = PPC1, y = BrainResidual)) + 
+  geom_point(alpha = 1) +  
+  geom_smooth(method = "lm", se = TRUE, color = "black") + 
+  labs(title = "Relative Brain Size vs. Environmental Variation (Passeriformes)",
+       x = "Environmental Variation (PPC1)",
+       y = "Relative Brain Size") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Plot relBS ~ PPC1 for Piciformes
+ggplot(data = dataPic, aes(x = PPC1, y = BrainResidual)) + 
+  geom_point(alpha = 1) +  
+  geom_smooth(method = "lm", se = TRUE, color = "black") + 
+  labs(title = "Relative Brain Size vs. Environmental Variation (Passeriformes)",
+       x = "Environmental Variation (PPC1)",
+       y = "Relative Brain Size") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Plot relBS ~ PPC1 for Galliformes
+ggplot(data = dataGal, aes(x = PPC1, y = BrainResidual)) + 
+  geom_point(alpha = 1) +  
+  geom_smooth(method = "lm", se = TRUE, color = "black") + 
+  labs(title = "Relative Brain Size vs. Environmental Variation (Passeriformes)",
+       x = "Environmental Variation (PPC1)",
+       y = "Relative Brain Size") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# figure 2 from the paper
+knitr::include_graphics("images/Figure 2.png")
+```
+
+### Replicate of Figure 3
+The original study first examines EVI in breeding sites across all behavioral categories using PGLS models, specifically testing how EVI in breeding sites during winter (EVI.BreedingSite.Winter.) varies among species.Following this, they present a bar plot comparing EVI values between summer and winter across different behavioral categories.
+```{r, warning=FALSE, message = FALSE}
+# set mid-lat residents as reference
+df$BehaviorCategories <- factor(df$BehaviorCategories)
+df$BehaviorCategories <- relevel(df$BehaviorCategories, ref = "Resident.MidLat")
+
+# filter date
+data_allEVI <- df %>%
+  drop_na(EVI.BreedingSite.Winter.)
+
+# prune tree
+pruned.tree <- drop.tip(mytree, mytree$tip.label[-which(mytree$tip.label %in% row.names(data_allEVI))])
+
+# run the PGLS
+modBehCat <- gls(EVI.BreedingSite.Winter. ~ BehaviorCategories, data = data_allEVI,
+                 correlation = corPagel(value = 1, phy = pruned.tree, 
+                                        form = ~ species), method = "REML")
+summary(modBehCat)
+```
+The model finds that EVI in breeding areas during winter decreases more significantly for high-latitude residents, short-distance migrants, and long-distance migrants compared to mid- and low-latitude residents. They report this effect as statistically significant (PGLS, P < 0.001) and reference Supplementary Table 10 as the source of this result. <br/><br/>
+However, upon reviewing Supplementary Table 10, it does not appear to directly correspond to the analysis described in the main text.Despite this discrepancy, for reference, I include below the captions for Figure 3 and Supplementary Table 10 as they appear in the original paper.
+```{r, warning=FALSE}
+knitr::include_graphics("images/Figure 3 Caption.png")
+knitr::include_graphics("images/Suppementary Table 10.png")
+```
+In the original paper, Figure 3 presents Enhanced Vegetation Index (EVI) values for different behavior categories across seasons. However, the specific transformation applied to EVI values is not explicitly described in the methods. While my dataset contains only positive EVI values, the original figure includes negative values, suggesting that a rescaling or normalization process was used. After testing multiple potential transformations (e.g., z-score normalization, mean-centering relative to residents, log transformation, and min-max scaling), none produced a pattern consistent with the published figure. Given this, I present the raw EVI values in my replication figure while acknowledging this discrepancy.
+```{r, warning=FALSE}
+# Plot
+# convert BehaviorCategories to correct order
+df$BehaviorCategories <- factor(df$BehaviorCategories, 
+                                levels = c("Resident.LowLat", "Resident.MidLat", "Resident.HighLat",
+                                           "Migrant.Short", "Migrant.Long"))
+
+# reshape data 
+df_re <- df %>%
+  select(BehaviorCategories, EVI.BreedingSite.Summer., 
+         EVI.NonBreedingSite.Winter., EVI.BreedingSite.Winter.) %>%
+  pivot_longer(cols = starts_with("EVI"), 
+               names_to = "Season", 
+               values_to = "EVI") %>%
+  mutate(Season = case_when(
+    Season == "EVI.BreedingSite.Summer." ~ "Summer Breeding Site",
+    Season == "EVI.NonBreedingSite.Winter." ~ "Winter Non-Breeding Site",
+    Season == "EVI.BreedingSite.Winter." ~ "Winter Breeding Site"
+  ))
+
+# set winter non-breeding site for residents to NA
+df_re <- df_re %>%
+  mutate(EVI = ifelse(BehaviorCategories %in% c("Resident.LowLat", "Resident.MidLat", "Resident.HighLat") & 
+                        Season == "Winter Non-Breeding Site", NA, EVI))
+
+# compute mean and sd of EVI in each behavior category & season
+df_stats <- df_re %>%
+  group_by(BehaviorCategories, Season) %>%
+  summarise(
+    mean_EVI = mean(EVI, na.rm = TRUE),
+    se_EVI = sd(EVI, na.rm = TRUE) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# set bar width for residents and migrants
+df_stats <- df_stats %>%
+  mutate(bar_width = ifelse(BehaviorCategories %in% c("Resident.LowLat", "Resident.MidLat", "Resident.HighLat"), 
+                            0.7, 0.5))
+
+# Generate the bar plot
+ggplot(df_stats, aes(x = BehaviorCategories, y = mean_EVI, fill = Season)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), 
+           alpha = 0.8, width = df_stats$bar_width) +  
+  geom_errorbar(aes(ymin = mean_EVI - se_EVI, ymax = mean_EVI + se_EVI), 
+                width = 0.2, color = "black", position = position_dodge(width = 0.7)) +
+  scale_fill_manual(values = c("gray80", "gray40", "black")) +  
+  labs(title = "Raw EVI by Behavior Category and Season",
+       x = NULL,
+       y = "Enhanced vegetation index (EVI) ",
+       fill = "Season") +
+  coord_cartesian(ylim = c(1.12, max(df_stats$mean_EVI, na.rm = TRUE) + 0.1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+# Figure 3 from the paper
+knitr::include_graphics("images/Figure 3.png")
+```
+Migratory species avoid harsher winter conditions by moving to regions with more stable environmental productivity. This pattern shows migrants adapting to seasonal changes by shifting locations, while residents endure local fluctuations year-round.
+
+## Summary/Discussion
+I was able to successfully replicate the main conclusions of the paper, yet many key methodological details were not explicitly described, requiring deduction and assumptions at multiple steps. The brevity of the methods section—both in the main text and supplementary materials—left several aspects open to interpretation. The data transformations applied to variables were not specified, leading me to use a Box-Cox transformation where appropriate. The covariates included in certain models were unclear, and I had to infer from the sample sizes reported in the results that some models did not include additional predictors. In the PGLS analysis of EVI in breeding areas, the study referenced Supplementary Table 10, but upon review, it did not seem to align with the specific result discussed in the main text.<br/><br/>
+Despite these challenges, the fact that the overall conclusions remained unchanged—even with slight variations in methodological steps—shows the robustness of the original study’s findings. The relationship between environmental variability and brain size holds consistently across analytical choices.
+
+## Reference
+Sayol, F., Maspons, J., Lapiedra, O. et al. Environmental variation and the evolution of large brains in birds. Nat Commun 7, 13971 (2016). https://doi-org.ezproxy.lib.utexas.edu/10.1038/ncomms13971

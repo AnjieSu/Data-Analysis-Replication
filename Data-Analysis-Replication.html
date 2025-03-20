@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.553">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Data-Analysis-Replication</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Data-Analysis-Replication_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Data-Analysis-Replication_files/libs/quarto-html/quarto.js"></script>
+<script src="Data-Analysis-Replication_files/libs/quarto-html/popper.min.js"></script>
+<script src="Data-Analysis-Replication_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Data-Analysis-Replication_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Data-Analysis-Replication_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Data-Analysis-Replication_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Data-Analysis-Replication_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Data-Analysis-Replication_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Data-Analysis-Replication_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Data-Analysis-Replication</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>The paper mainly examines relationship between environmental variability and brain size in birds. The authors hypothesize that species living in more unpredictable environments may have evolved larger brains relative to their body size as an adaptive response.They also explores these patterns within major avian orders to assess whether evolutionary responses differ among lineages.<br><br> They apply phylogenetic generalized least squares (PGLS) models to examine associations between brain size and measures of environmental variability. Additionally, they categorize species into behavioral groups (e.g., residents and migrants) to investigate differences in seasonal resource availability. <br><br> In this project, I aim to replicate: <br><br> 1. Table 1 (PGLS Models Testing Environmental Variation and Brain Size): The paper presents PGLS models examining how environmental variability (PPC1, PPC2, snow cover, and EVI variability) is associated with brain size across birds. I replicate these models and compare the estimated coefficients, standard errors, and p-values with those reported in the original study. <br><br> 2. Figure 2 (Relationship Between Relative Brain Size and Environmental Variation in Different Avian Orders): The figure illustrates the relationship between relative brain size (computed as residuals from a log-log PGLS of brain and body size) and environmental variation (PPC1) within four avian orders: Passeriformes, Strigiformes, Piciformes, and Galliformes. I replicate this by fitting separate PGLS models for each order and visualizing the associations with scatterplots and regression lines. <br><br> 3. Figure 3 (Seasonal EVI Differences Across Behavioral Categories): This figure shows how EVI varies seasonally (summer breeding vs.&nbsp;winter non-breeding vs.&nbsp;winter breeding) among different behavioral groups of birds (residents at low-, mid-, and high-latitudes, and short- and long-distance migrants). I replicate this by running a PGLS on breeding-site EVI against behavior categories and and structuring the bar plot with mean and standard error of EVI for each category.</p>
+</section>
+<section id="visulization-of-data" class="level2">
+<h2 class="anchored" data-anchor-id="visulization-of-data">Visulization of Data</h2>
+<p>load packages:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nlme)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(EnvStats)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(phylopath)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ape)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(phytools)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(car)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>load data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"https://raw.githubusercontent.com/AnjieSu/Data-Analysis-Replication/refs/heads/main/data/41467_2016_BFncomms13971_MOESM2316_ESM.csv"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                   species         order LogBrain LogBody BrainResidual
+1   Abroscopus_albogularis PASSERIFORMES   -1.079   1.609         0.143
+2 Acanthagenys_rufogularis PASSERIFORMES    0.144   3.915         0.164
+3    Acanthiza_chrysorrhoa PASSERIFORMES   -0.777   2.303         0.090
+4        Acanthiza_ewingii PASSERIFORMES   -0.462   1.386         0.874
+5       Acanthiza_inornata PASSERIFORMES   -0.821   2.140         0.128
+6        Acanthiza_lineata PASSERIFORMES   -0.664   1.906         0.405
+  BehaviorCategories MigratoryDistance SnowWeeks EVI.BreedingSite.Winter.
+1    Resident.MidLat                 0     0.042                    1.531
+2    Resident.MidLat                 0     0.000                    1.350
+3    Resident.MidLat                 0     0.008                    1.376
+4   Resident.HighLat                 0     0.418                    1.547
+5    Resident.MidLat                 0     0.001                    1.531
+6    Resident.MidLat                 0     0.008                    1.508
+  EVI.BreedingSite.Summer. EVI.NonBreedingSite.Winter. CV.EVI.Intra.year
+1                    1.634                       1.531             0.030
+2                    1.356                       1.350             0.007
+3                    1.372                       1.376             0.008
+4                    1.522                       1.547             0.012
+5                    1.412                       1.531             0.024
+6                    1.465                       1.508             0.016
+  CV.EVI.Among.years   PPC1   PPC2 FruitConsumer InsectConsumer ForestDweller
+1              0.011  1.767 -0.504             0              1             1
+2              0.009 -3.067 -0.509             1              1             1
+3              0.010 -2.463 -0.088             0              1             1
+4              0.015  1.539  2.119             0              1             1
+5              0.012  0.904  0.200             0              1             1
+6              0.015  1.129  2.944             0              1             1
+  DietBreadth Incubation Fledging DevelopmentalMode SocialMatingSystem
+1       0.000         NA       NA         altricial         Monogamous
+2       0.170       14.5     16.5         altricial        Facultative
+3       0.152       16.4     18.5         altricial         Polygamous
+4       0.173         NA       NA         altricial         Monogamous
+5       0.131         NA       NA         altricial               &lt;NA&gt;
+6       0.096       16.3     18.5         altricial         Monogamous
+  ColonialBreeding SocialForaging
+1         Solitary    Aggregation
+2         Solitary    Aggregation
+3         Solitary    Aggregation
+4         Solitary    Aggregation
+5             &lt;NA&gt;           &lt;NA&gt;
+6         Solitary    Aggregation</code></pre>
+</div>
+</div>
+</section>
+<section id="statistical-replicationsreanalysis" class="level2">
+<h2 class="anchored" data-anchor-id="statistical-replicationsreanalysis">Statistical Replications/Reanalysis</h2>
+<section id="replicate-of-models-in-table-1" class="level3">
+<h3 class="anchored" data-anchor-id="replicate-of-models-in-table-1">Replicate of models in Table 1</h3>
+<p>In the original study, the authors used phylogenetic generalized least squares (PGLS) models to test whether brain size is associated with environmental variation, while controlling for body size. Instead of using the caper package as in the original study, I use the nlme package, which is standard in my own research. All models incorporate Pagel’s λ correlation structure, following the same statistical approach as the original paper. <br><br> The phylogenetic tree used here is the one my lab works with. The tree is pruned to include only species present in the dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load Tree</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"~/repos/Data-Analysis-Replication/data/Bird.MCC.tree.Rdata"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># prune to keep only desired species</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>mytree <span class="ot">&lt;-</span> ape<span class="sc">::</span><span class="fu">drop.tip</span>(mytree, mytree<span class="sc">$</span>tip.label[<span class="sc">-</span><span class="fu">which</span>(mytree<span class="sc">$</span>tip.label <span class="sc">%in%</span> df<span class="sc">$</span>species)])</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># use species names as row labels so that phylopath can match datasets</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(df, <span class="at">row.names =</span> df<span class="sc">$</span>species)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co"># remove any na value</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>mydata <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>(LogBrain, LogBody, CV.EVI.Intra.year, CV.EVI.Among.years, SnowWeeks, PPC1, PPC2) <span class="co"># N = 835</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 1: Brain size vs. Body size + CV(EVI) within-year</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>model1 <span class="ot">&lt;-</span> <span class="fu">gls</span>(LogBrain <span class="sc">~</span> LogBody <span class="sc">+</span> CV.EVI.Intra.year, <span class="at">data =</span> mydata,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> mytree, </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 2: Brain size vs. Body size + log(Weeks of Snow + 1)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>model2 <span class="ot">&lt;-</span> <span class="fu">gls</span>(LogBrain <span class="sc">~</span> LogBody <span class="sc">+</span> <span class="fu">log</span>(SnowWeeks <span class="sc">+</span> <span class="dv">1</span>), <span class="at">data =</span> mydata,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> mytree, </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 3: Brain size vs. Body size + CV(EVI) among-years</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>model3 <span class="ot">&lt;-</span> <span class="fu">gls</span>(LogBrain <span class="sc">~</span> LogBody <span class="sc">+</span> CV.EVI.Among.years, <span class="at">data =</span> mydata,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> mytree, </span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Model 4: Brain size vs. Body size + Environmental PCA components</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>model4 <span class="ot">&lt;-</span> <span class="fu">gls</span>(LogBrain <span class="sc">~</span> LogBody <span class="sc">+</span> PPC1 <span class="sc">+</span> PPC2, <span class="at">data =</span> mydata,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> mytree, </span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The following section presents the summary outputs of the four PGLS models replicated from Table 1 in the original study. The published Table 1 is also displayed below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: LogBrain ~ LogBody + CV.EVI.Intra.year 
+  Data: mydata 
+        AIC      BIC   logLik
+  -526.4372 -502.818 268.2186
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.9133322 
+
+Coefficients:
+                       Value Std.Error   t-value p-value
+(Intercept)       -2.6727325 0.1632087 -16.37616       0
+LogBody            0.5997661 0.0080607  74.40577       0
+CV.EVI.Intra.year  2.5285473 0.5886987   4.29515       0
+
+ Correlation: 
+                  (Intr) LogBdy
+LogBody           -0.287       
+CV.EVI.Intra.year -0.046 -0.049
+
+Standardized residuals:
+      Min        Q1       Med        Q3       Max 
+-2.616971  1.011175  1.730276  2.343793  4.772499 
+
+Residual standard error: 0.3374418 
+Degrees of freedom: 835 total; 832 residual</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: LogBrain ~ LogBody + log(SnowWeeks + 1) 
+  Data: mydata 
+        AIC       BIC   logLik
+  -513.6953 -490.0761 261.8476
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.9143997 
+
+Coefficients:
+                        Value  Std.Error   t-value p-value
+(Intercept)        -2.6351736 0.16393985 -16.07403   0e+00
+LogBody             0.5993438 0.00809789  74.01238   0e+00
+log(SnowWeeks + 1)  0.0438021 0.01196624   3.66047   3e-04
+
+ Correlation: 
+                   (Intr) LogBdy
+LogBody            -0.289       
+log(SnowWeeks + 1)  0.008 -0.066
+
+Standardized residuals:
+       Min         Q1        Med         Q3        Max 
+-2.6083934  0.9951438  1.7118741  2.3233830  4.7331789 
+
+Residual standard error: 0.3391974 
+Degrees of freedom: 835 total; 832 residual</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: LogBrain ~ LogBody + CV.EVI.Among.years 
+  Data: mydata 
+       AIC       BIC  logLik
+  -541.986 -518.3669 275.993
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.9152485 
+
+Coefficients:
+                       Value Std.Error   t-value p-value
+(Intercept)        -2.747664 0.1636158 -16.79339       0
+LogBody             0.598144 0.0080150  74.62782       0
+CV.EVI.Among.years 11.232254 1.9876853   5.65092       0
+
+ Correlation: 
+                   (Intr) LogBdy
+LogBody            -0.278       
+CV.EVI.Among.years -0.117 -0.067
+
+Standardized residuals:
+       Min         Q1        Med         Q3        Max 
+-2.7065166  0.9771407  1.6906977  2.3295941  4.6622281 
+
+Residual standard error: 0.336135 
+Degrees of freedom: 835 total; 832 residual</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model4)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: LogBrain ~ LogBody + PPC1 + PPC2 
+  Data: mydata 
+        AIC       BIC   logLik
+  -517.5425 -489.2067 264.7712
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.9140421 
+
+Coefficients:
+                 Value  Std.Error   t-value p-value
+(Intercept) -2.6212550 0.16200650 -16.17994   0.000
+LogBody      0.5982404 0.00800807  74.70469   0.000
+PPC1         0.0090874 0.00158813   5.72207   0.000
+PPC2         0.0090035 0.00319918   2.81431   0.005
+
+ Correlation: 
+        (Intr) LogBdy PPC1  
+LogBody -0.290              
+PPC1     0.021 -0.069       
+PPC2     0.006 -0.015  0.344
+
+Standardized residuals:
+       Min         Q1        Med         Q3        Max 
+-2.6997385  0.9993996  1.6951645  2.3413196  4.7137463 
+
+Residual standard error: 0.335169 
+Degrees of freedom: 835 total; 831 residual</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/Table 1.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="images/Table%201.png" class="img-fluid figure-img" width="586"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Overall, the results support the study’s hypothesis that species in more variable environments tend to have larger brains.</p>
+</section>
+<section id="replicate-of-figure-2" class="level3">
+<h3 class="anchored" data-anchor-id="replicate-of-figure-2">Replicate of Figure 2</h3>
+<p>For this replication, I again use GLS with Pagel’s λ correlation structure and the MCC phylogenetic tree, consistent with my approach in the first replication. <br><br> The original paper does not specify whether or how the predictor variables were transformed, despite the fact that their distributions are skewed and likely required transformation. Since transformation is necessary for proper model fitting, I applied a Box-Cox transformation to normalize the data. <br><br> Additionally, while my results capture the overall trend observed in the paper, I was unable to exactly match their reported regression coefficients (betas). Based on the sample sizes (N) reported in the figure caption, I inferred that their model did not include any additional covariates, so I followed this approach and fit a simpler model without covariates.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># BC transform </span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>myBCtransform <span class="ot">&lt;-</span> <span class="cf">function</span>(myvector) {</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">require</span>(EnvStats)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  myindex <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="sc">!</span><span class="fu">is.na</span>(myvector))</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># shift scale to positive numbers and identify optimal lambda for box-cox transformation</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  mylambda <span class="ot">&lt;-</span> <span class="fu">boxcox</span>(<span class="fu">as.numeric</span>(myvector[myindex])<span class="sc">-</span><span class="fu">min</span>(<span class="fu">as.numeric</span>(myvector[myindex]))<span class="sc">+</span><span class="dv">1</span>, <span class="at">optimize =</span> T)<span class="sc">$</span>lambda</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># transform</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  myvector[myindex] <span class="ot">&lt;-</span> <span class="fu">scale</span>(<span class="fu">boxcoxTransform</span>(<span class="fu">as.numeric</span>(myvector[myindex])<span class="sc">-</span><span class="fu">min</span>(<span class="fu">as.numeric</span>(myvector[myindex]))<span class="sc">+</span><span class="dv">1</span>, mylambda))</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> (myvector)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="passeriformes" class="level4">
+<h4 class="anchored" data-anchor-id="passeriformes">Passeriformes</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset for Passeriformes</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>dataPas <span class="ot">&lt;-</span> mydata <span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(order <span class="sc">==</span> <span class="st">"PASSERIFORMES"</span>) <span class="co"># N=417</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"># prune tree</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>pruned.tree <span class="ot">&lt;-</span> <span class="fu">drop.tip</span>(mytree, mytree<span class="sc">$</span>tip.label[<span class="sc">-</span><span class="fu">which</span>(mytree<span class="sc">$</span>tip.label <span class="sc">%in%</span> <span class="fu">row.names</span>(dataPas))])</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># PGLS for Passeriformes</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>modPas <span class="ot">&lt;-</span> <span class="fu">gls</span>(BrainResidual <span class="sc">~</span> <span class="fu">myBCtransform</span>(PPC1), <span class="at">data =</span> dataPas,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> pruned.tree, </span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Model summary</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(modPas)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: BrainResidual ~ myBCtransform(PPC1) 
+  Data: dataPas 
+        AIC       BIC   logLik
+  -265.8483 -249.7352 136.9242
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.9132411 
+
+Coefficients:
+                        Value  Std.Error  t-value p-value
+(Intercept)         0.3812199 0.09270001 4.112404       0
+myBCtransform(PPC1) 0.0412823 0.00855556 4.825199       0
+
+ Correlation: 
+                    (Intr)
+myBCtransform(PPC1) 0.008 
+
+Standardized residuals:
+       Min         Q1        Med         Q3        Max 
+-2.8986977 -0.7713327 -0.2524941  0.2268106  3.1072665 
+
+Residual standard error: 0.2738832 
+Degrees of freedom: 417 total; 415 residual</code></pre>
+</div>
+</div>
+</section>
+<section id="strigiformes" class="level4">
+<h4 class="anchored" data-anchor-id="strigiformes">Strigiformes</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset for Strigiformes</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>dataStr <span class="ot">&lt;-</span> mydata <span class="sc">%&gt;%</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(order <span class="sc">==</span> <span class="st">"STRIGIFORMES"</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># prune tree</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>pruned.tree <span class="ot">&lt;-</span> <span class="fu">drop.tip</span>(mytree, mytree<span class="sc">$</span>tip.label[<span class="sc">-</span><span class="fu">which</span>(mytree<span class="sc">$</span>tip.label <span class="sc">%in%</span> <span class="fu">row.names</span>(dataStr))])</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co"># PGLS for Strigiformes</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>modStr <span class="ot">&lt;-</span> <span class="fu">gls</span>(BrainResidual <span class="sc">~</span> <span class="fu">myBCtransform</span>(PPC1), <span class="at">data =</span> dataStr,</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> pruned.tree, </span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Model summary</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(modStr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: BrainResidual ~ myBCtransform(PPC1) 
+  Data: dataStr 
+         AIC      BIC   logLik
+  -0.9172787 2.860477 4.458639
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+    lambda 
+-0.4083079 
+
+Coefficients:
+                        Value  Std.Error  t-value p-value
+(Intercept)         0.9325357 0.01235101 75.50280       0
+myBCtransform(PPC1) 0.1592871 0.02446327  6.51128       0
+
+ Correlation: 
+                    (Intr)
+myBCtransform(PPC1) -0.986
+
+Standardized residuals:
+         Min           Q1          Med           Q3          Max 
+-2.329522983 -0.516840266  0.002622132  0.544417307  3.071174217 
+
+Residual standard error: 0.1438782 
+Degrees of freedom: 21 total; 19 residual</code></pre>
+</div>
+</div>
+</section>
+<section id="piciformes" class="level4">
+<h4 class="anchored" data-anchor-id="piciformes">Piciformes</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset for Piciformes</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>dataPic <span class="ot">&lt;-</span> mydata <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(order <span class="sc">==</span> <span class="st">"PICIFORMES"</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># prune tree</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>pruned.tree <span class="ot">&lt;-</span> <span class="fu">drop.tip</span>(mytree, mytree<span class="sc">$</span>tip.label[<span class="sc">-</span><span class="fu">which</span>(mytree<span class="sc">$</span>tip.label <span class="sc">%in%</span> <span class="fu">row.names</span>(dataPic))])</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co"># PGLS for Piciformes</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>modPic <span class="ot">&lt;-</span> <span class="fu">gls</span>(BrainResidual <span class="sc">~</span> <span class="fu">myBCtransform</span>(PPC1), <span class="at">data =</span> dataPic,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> pruned.tree, </span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Model summary</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(modPic)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: BrainResidual ~ myBCtransform(PPC1) 
+  Data: dataPic 
+       AIC      BIC     logLik
+  9.552089 15.02127 -0.7760445
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+  lambda 
+1.008804 
+
+Coefficients:
+                         Value  Std.Error  t-value p-value
+(Intercept)         0.27928159 0.20252490 1.378999  0.1784
+myBCtransform(PPC1) 0.07777969 0.03548675 2.191795  0.0366
+
+ Correlation: 
+                    (Intr)
+myBCtransform(PPC1) 0.054 
+
+Standardized residuals:
+        Min          Q1         Med          Q3         Max 
+-1.30310035  0.08741642  0.61856805  1.11657771  2.11951830 
+
+Residual standard error: 0.3897314 
+Degrees of freedom: 31 total; 29 residual</code></pre>
+</div>
+</div>
+</section>
+<section id="galliformes" class="level4">
+<h4 class="anchored" data-anchor-id="galliformes">Galliformes</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># subset for Galliformes</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>dataGal <span class="ot">&lt;-</span> mydata <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(order <span class="sc">==</span> <span class="st">"GALLIFORMES"</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co"># prune tree</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>pruned.tree <span class="ot">&lt;-</span> <span class="fu">drop.tip</span>(mytree, mytree<span class="sc">$</span>tip.label[<span class="sc">-</span><span class="fu">which</span>(mytree<span class="sc">$</span>tip.label <span class="sc">%in%</span> <span class="fu">row.names</span>(dataGal))])</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="co"># PGLS for Galliformes</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>modGal <span class="ot">&lt;-</span> <span class="fu">gls</span>(BrainResidual <span class="sc">~</span> <span class="fu">myBCtransform</span>(PPC1), <span class="at">data =</span> dataGal,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> pruned.tree, </span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Model summary</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(modGal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: BrainResidual ~ myBCtransform(PPC1) 
+  Data: dataGal 
+        AIC       BIC   logLik
+  -9.939398 -5.956469 8.969699
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.7006916 
+
+Coefficients:
+                          Value  Std.Error    t-value p-value
+(Intercept)         -0.19105643 0.08486789 -2.2512216  0.0358
+myBCtransform(PPC1) -0.00728922 0.03690230 -0.1975275  0.8454
+
+ Correlation: 
+                    (Intr)
+myBCtransform(PPC1) 0.251 
+
+Standardized residuals:
+       Min         Q1        Med         Q3        Max 
+-1.5693117 -0.7769129 -0.2645855  0.1967845  2.1121655 
+
+Residual standard error: 0.170966 
+Degrees of freedom: 22 total; 20 residual</code></pre>
+</div>
+</div>
+<p>The estimates and standard deviations differ from those reported in the original paper, yet the overall findings remain consistent. Specifically, the results confirm a significant positive effect of environmental variation (PPC1) on relative brain size in Passeriformes, Strigiformes, and Piciformes, while no significant relationship is found in Galliformes, aligning with the conclusions of the original study. <br><br> Below are my replicated plots alongside the original figures from the paper for comparison.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot relBS ~ PPC1 for Passeriforms</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dataPas, <span class="fu">aes</span>(<span class="at">x =</span> PPC1, <span class="at">y =</span> BrainResidual)) <span class="sc">+</span> </span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="dv">1</span>) <span class="sc">+</span>  </span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span> </span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Relative Brain Size vs. Environmental Variation (Passeriformes)"</span>,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Environmental Variation (PPC1)"</span>,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Brain Size"</span>) <span class="sc">+</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Data-Analysis-Replication_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot relBS ~ PPC1 for Strigiformes</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dataStr, <span class="fu">aes</span>(<span class="at">x =</span> PPC1, <span class="at">y =</span> BrainResidual)) <span class="sc">+</span> </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="dv">1</span>) <span class="sc">+</span>  </span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span> </span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Relative Brain Size vs. Environmental Variation (Passeriformes)"</span>,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Environmental Variation (PPC1)"</span>,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Brain Size"</span>) <span class="sc">+</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Data-Analysis-Replication_files/figure-html/unnamed-chunk-15-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot relBS ~ PPC1 for Piciformes</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dataPic, <span class="fu">aes</span>(<span class="at">x =</span> PPC1, <span class="at">y =</span> BrainResidual)) <span class="sc">+</span> </span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="dv">1</span>) <span class="sc">+</span>  </span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span> </span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Relative Brain Size vs. Environmental Variation (Passeriformes)"</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Environmental Variation (PPC1)"</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Brain Size"</span>) <span class="sc">+</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Data-Analysis-Replication_files/figure-html/unnamed-chunk-15-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot relBS ~ PPC1 for Galliformes</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dataGal, <span class="fu">aes</span>(<span class="at">x =</span> PPC1, <span class="at">y =</span> BrainResidual)) <span class="sc">+</span> </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="dv">1</span>) <span class="sc">+</span>  </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span> </span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Relative Brain Size vs. Environmental Variation (Passeriformes)"</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Environmental Variation (PPC1)"</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Relative Brain Size"</span>) <span class="sc">+</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Data-Analysis-Replication_files/figure-html/unnamed-chunk-15-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># figure 2 from the paper</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/Figure 2.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="images/Figure%202.png" class="img-fluid figure-img" width="294"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="replicate-of-figure-3" class="level3">
+<h3 class="anchored" data-anchor-id="replicate-of-figure-3">Replicate of Figure 3</h3>
+<p>The original study first examines EVI in breeding sites across all behavioral categories using PGLS models, specifically testing how EVI in breeding sites during winter (EVI.BreedingSite.Winter.) varies among species.Following this, they present a bar plot comparing EVI values between summer and winter across different behavioral categories.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set mid-lat residents as reference</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>BehaviorCategories <span class="ot">&lt;-</span> <span class="fu">factor</span>(df<span class="sc">$</span>BehaviorCategories)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>BehaviorCategories <span class="ot">&lt;-</span> <span class="fu">relevel</span>(df<span class="sc">$</span>BehaviorCategories, <span class="at">ref =</span> <span class="st">"Resident.MidLat"</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co"># filter date</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>data_allEVI <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>(EVI.BreedingSite.Winter.)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="co"># prune tree</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>pruned.tree <span class="ot">&lt;-</span> <span class="fu">drop.tip</span>(mytree, mytree<span class="sc">$</span>tip.label[<span class="sc">-</span><span class="fu">which</span>(mytree<span class="sc">$</span>tip.label <span class="sc">%in%</span> <span class="fu">row.names</span>(data_allEVI))])</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="co"># run the PGLS</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>modBehCat <span class="ot">&lt;-</span> <span class="fu">gls</span>(EVI.BreedingSite.Winter. <span class="sc">~</span> BehaviorCategories, <span class="at">data =</span> data_allEVI,</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>                 <span class="at">correlation =</span> <span class="fu">corPagel</span>(<span class="at">value =</span> <span class="dv">1</span>, <span class="at">phy =</span> pruned.tree, </span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>                                        <span class="at">form =</span> <span class="sc">~</span> species), <span class="at">method =</span> <span class="st">"REML"</span>)</span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(modBehCat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generalized least squares fit by REML
+  Model: EVI.BreedingSite.Winter. ~ BehaviorCategories 
+  Data: data_allEVI 
+        AIC       BIC   logLik
+  -1746.611 -1711.297 880.3055
+
+Correlation Structure: corPagel
+ Formula: ~species 
+ Parameter estimate(s):
+   lambda 
+0.6735772 
+
+Coefficients:
+                                        Value  Std.Error    t-value p-value
+(Intercept)                         1.4431484 0.06560185  21.998593       0
+BehaviorCategoriesMigrant.Long     -0.2584942 0.01730410 -14.938321       0
+BehaviorCategoriesMigrant.Short    -0.2085061 0.01035858 -20.128829       0
+BehaviorCategoriesResident.HighLat -0.1667609 0.01726045  -9.661448       0
+BehaviorCategoriesResident.LowLat   0.1094331 0.00843938  12.966965       0
+
+ Correlation: 
+                                   (Intr) BhCM.L BhCM.S BCR.HL
+BehaviorCategoriesMigrant.Long     -0.035                     
+BehaviorCategoriesMigrant.Short    -0.054  0.338              
+BehaviorCategoriesResident.HighLat -0.030  0.112  0.226       
+BehaviorCategoriesResident.LowLat  -0.076  0.262  0.438  0.233
+
+Standardized residuals:
+       Min         Q1        Med         Q3        Max 
+-1.8508848 -0.5026131  0.1725508  0.6743039  2.4917679 
+
+Residual standard error: 0.1594634 
+Degrees of freedom: 1152 total; 1147 residual</code></pre>
+</div>
+</div>
+<p>The model finds that EVI in breeding areas during winter decreases more significantly for high-latitude residents, short-distance migrants, and long-distance migrants compared to mid- and low-latitude residents. They report this effect as statistically significant (PGLS, P &lt; 0.001) and reference Supplementary Table 10 as the source of this result. <br><br> However, upon reviewing Supplementary Table 10, it does not appear to directly correspond to the analysis described in the main text.Despite this discrepancy, for reference, I include below the captions for Figure 3 and Supplementary Table 10 as they appear in the original paper.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/Figure 3 Caption.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="images/Figure%203%20Caption.png" class="img-fluid figure-img" width="292"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/Suppementary Table 10.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="images/Suppementary%20Table%2010.png" class="img-fluid figure-img" width="568"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>In the original paper, Figure 3 presents Enhanced Vegetation Index (EVI) values for different behavior categories across seasons. However, the specific transformation applied to EVI values is not explicitly described in the methods. While my dataset contains only positive EVI values, the original figure includes negative values, suggesting that a rescaling or normalization process was used. After testing multiple potential transformations (e.g., z-score normalization, mean-centering relative to residents, log transformation, and min-max scaling), none produced a pattern consistent with the published figure. Given this, I present the raw EVI values in my replication figure while acknowledging this discrepancy.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"># convert BehaviorCategories to correct order</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>BehaviorCategories <span class="ot">&lt;-</span> <span class="fu">factor</span>(df<span class="sc">$</span>BehaviorCategories, </span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                                <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Resident.LowLat"</span>, <span class="st">"Resident.MidLat"</span>, <span class="st">"Resident.HighLat"</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                                           <span class="st">"Migrant.Short"</span>, <span class="st">"Migrant.Long"</span>))</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="co"># reshape data </span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>df_re <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(BehaviorCategories, EVI.BreedingSite.Summer., </span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>         EVI.NonBreedingSite.Winter., EVI.BreedingSite.Winter.) <span class="sc">%&gt;%</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">starts_with</span>(<span class="st">"EVI"</span>), </span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Season"</span>, </span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"EVI"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Season =</span> <span class="fu">case_when</span>(</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    Season <span class="sc">==</span> <span class="st">"EVI.BreedingSite.Summer."</span> <span class="sc">~</span> <span class="st">"Summer Breeding Site"</span>,</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    Season <span class="sc">==</span> <span class="st">"EVI.NonBreedingSite.Winter."</span> <span class="sc">~</span> <span class="st">"Winter Non-Breeding Site"</span>,</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    Season <span class="sc">==</span> <span class="st">"EVI.BreedingSite.Winter."</span> <span class="sc">~</span> <span class="st">"Winter Breeding Site"</span></span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a><span class="co"># set winter non-breeding site for residents to NA</span></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>df_re <span class="ot">&lt;-</span> df_re <span class="sc">%&gt;%</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">EVI =</span> <span class="fu">ifelse</span>(BehaviorCategories <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Resident.LowLat"</span>, <span class="st">"Resident.MidLat"</span>, <span class="st">"Resident.HighLat"</span>) <span class="sc">&amp;</span> </span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>                        Season <span class="sc">==</span> <span class="st">"Winter Non-Breeding Site"</span>, <span class="cn">NA</span>, EVI))</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a><span class="co"># compute mean and sd of EVI in each behavior category &amp; season</span></span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>df_stats <span class="ot">&lt;-</span> df_re <span class="sc">%&gt;%</span></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(BehaviorCategories, Season) <span class="sc">%&gt;%</span></span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_EVI =</span> <span class="fu">mean</span>(EVI, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">se_EVI =</span> <span class="fu">sd</span>(EVI, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">n</span>()),</span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a><span class="co"># set bar width for residents and migrants</span></span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>df_stats <span class="ot">&lt;-</span> df_stats <span class="sc">%&gt;%</span></span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">bar_width =</span> <span class="fu">ifelse</span>(BehaviorCategories <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Resident.LowLat"</span>, <span class="st">"Resident.MidLat"</span>, <span class="st">"Resident.HighLat"</span>), </span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>                            <span class="fl">0.7</span>, <span class="fl">0.5</span>))</span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate the bar plot</span></span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_stats, <span class="fu">aes</span>(<span class="at">x =</span> BehaviorCategories, <span class="at">y =</span> mean_EVI, <span class="at">fill =</span> Season)) <span class="sc">+</span></span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.7</span>), </span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>           <span class="at">alpha =</span> <span class="fl">0.8</span>, <span class="at">width =</span> df_stats<span class="sc">$</span>bar_width) <span class="sc">+</span>  </span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> mean_EVI <span class="sc">-</span> se_EVI, <span class="at">ymax =</span> mean_EVI <span class="sc">+</span> se_EVI), </span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.7</span>)) <span class="sc">+</span></span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"gray80"</span>, <span class="st">"gray40"</span>, <span class="st">"black"</span>)) <span class="sc">+</span>  </span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Raw EVI by Behavior Category and Season"</span>,</span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="cn">NULL</span>,</span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Enhanced vegetation index (EVI) "</span>,</span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>       <span class="at">fill =</span> <span class="st">"Season"</span>) <span class="sc">+</span></span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span> <span class="fu">c</span>(<span class="fl">1.12</span>, <span class="fu">max</span>(df_stats<span class="sc">$</span>mean_EVI, <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fl">0.1</span>)) <span class="sc">+</span></span>
+<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">30</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Data-Analysis-Replication_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Figure 3 from the paper</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"images/Figure 3.png"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="images/Figure%203.png" class="img-fluid figure-img" width="292"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Migratory species avoid harsher winter conditions by moving to regions with more stable environmental productivity. This pattern shows migrants adapting to seasonal changes by shifting locations, while residents endure local fluctuations year-round.</p>
+</section>
+</section>
+<section id="summarydiscussion" class="level2">
+<h2 class="anchored" data-anchor-id="summarydiscussion">Summary/Discussion</h2>
+<p>I was able to successfully replicate the main conclusions of the paper, yet many key methodological details were not explicitly described, requiring deduction and assumptions at multiple steps. The brevity of the methods section—both in the main text and supplementary materials—left several aspects open to interpretation. The data transformations applied to variables were not specified, leading me to use a Box-Cox transformation where appropriate. The covariates included in certain models were unclear, and I had to infer from the sample sizes reported in the results that some models did not include additional predictors. In the PGLS analysis of EVI in breeding areas, the study referenced Supplementary Table 10, but upon review, it did not seem to align with the specific result discussed in the main text.<br><br> Despite these challenges, the fact that the overall conclusions remained unchanged—even with slight variations in methodological steps—shows the robustness of the original study’s findings. The relationship between environmental variability and brain size holds consistently across analytical choices.</p>
+</section>
+<section id="reference" class="level2">
+<h2 class="anchored" data-anchor-id="reference">Reference</h2>
+<p>Sayol, F., Maspons, J., Lapiedra, O. et al.&nbsp;Environmental variation and the evolution of large brains in birds. Nat Commun 7, 13971 (2016). https://doi-org.ezproxy.lib.utexas.edu/10.1038/ncomms13971</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
